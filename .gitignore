@@ -41,7 +41,7 @@ tmp
 *.pyc
 metastore_db
 .cache
-
+*.joblib
 # Emacs
 *~
 *#

@@ -1,28 +1,27 @@
 import logging
 
 from flask import Flask, jsonify, request
-from keras.models import load_model
+from joblib import load
 
-from focus import __version__, __name__
-from focus.conf import MODEL_PATH
+from focus import __version__, __name__ as package_name
+from focus.conf import MODEL_PATH, CLASS_NAMES
+from focus.utils import get_explanations, get_highlighting
 
-app = Flask(__name__)
+app = Flask(package_name)
 
+logging.getLogger().setLevel(logging.INFO)
 logging.info("Loading model...")
-model = load_model(MODEL_PATH)
+model = load(MODEL_PATH)
 logging.info(f"Model loaded from file {MODEL_PATH}.")
 
-test_pred = model.predict(["test text"])
-logging.info(f"Test prediction (score should be larger than 0.8): {test_pred:.2f}")
-
-logging.info(f"{__name__}'s API loaded and listening...")
+logging.info(f"{package_name}'s API loaded and listening...")
 
 
 @app.route("/", methods=["GET"])
 def health_check():
     """API health check on root URN."""
     logging.info(
-        f"Received GET request on the root URN ({__name__} version {__version__})"
+        f"Received GET request on the root URN ({package_name} version {__version__})"
     )
     return __version__, 200
 
@@ -31,18 +30,32 @@ def health_check():
 def return_score_and_explanations():
     """Get the score and prediction for a given input text."""
     status = 200
-    # try:
-    #     request_argument = request.args["explains"]
-    # except KeyError:
-    #     logging.warning(
-    #         'Wrong request, expected argument "explains", received the following'
-    #         " arguments: %s",
-    #         request.args,
-    #     )
-    #     status = 400
-    input_ = request.json
-    print(input_)
-    response = {"data": {"explains": input_}}
+    try:
+        input_text = request.json["text"]
+    except KeyError:
+        logging.warning(
+            'Wrong request, expected POST request with JSON payload and a "text" field.'
+        )
+        status = 400
+    logging.info(f"Received query with input text: {input_text}")
+
+    y_prob = model.predict_proba([input_text])[0]
+
+    top_class = CLASS_NAMES[y_prob.argmax()]
+    logging.info(f"Predicted class: {top_class}")
+    classes_scores = {
+        f"{CLASS_NAMES[pred]} ({pred})": y_prob[pred] for pred in y_prob.argsort()[::-1]
+    }
+    logging.info(f"Predicted class: {classes_scores}")
+    explanations = get_explanations(input_text, model)
+
+    response = {
+        "data": {
+            "scores": classes_scores,
+            "explanations": explanations,
+            "highlighted_text_top_class": get_highlighting(input_text, explanations[top_class]),
+        }
+    }
     return jsonify(response), status
 
 
