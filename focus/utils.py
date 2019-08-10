@@ -1,20 +1,28 @@
 from lime.lime_text import LimeTextExplainer
 from focus.conf import CLASS_NAMES, N_FEATURES_EXPLANATIONS
 import numpy as np
+from nltk import sent_tokenize
+from functools import partial
 
-explainer = LimeTextExplainer(class_names=CLASS_NAMES)
+token_explainer = LimeTextExplainer(class_names=CLASS_NAMES)
+sentence_explainer = LimeTextExplainer(class_names=CLASS_NAMES, split_expression=sent_tokenize)
 
 
-def get_explanations(sample, model):
+def get_explanations(sample, model, explainer, n_features=N_FEATURES_EXPLANATIONS):
+    class_names = explainer.class_names
     exp = explainer.explain_instance(
         sample,
         model.predict_proba,
-        num_features=N_FEATURES_EXPLANATIONS,
-        top_labels=len(CLASS_NAMES),
+        num_features=n_features,
+        top_labels=len(class_names),
     )
     return {
-        class_name: exp.as_list(label=i) for i, class_name in enumerate(CLASS_NAMES)
+        class_name: exp.as_list(label=i) for i, class_name in enumerate(class_names)
     }
+
+
+get_token_explanations = partial(get_explanations, explainer=token_explainer)
+get_sentence_explanations = partial(get_explanations, explainer=sentence_explainer)
 
 
 def get_highlighting(text, tokens_scores_mapping):

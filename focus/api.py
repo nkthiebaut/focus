@@ -5,7 +5,7 @@ from joblib import load
 
 from focus import __version__, __name__ as package_name
 from focus.conf import MODEL_PATH, CLASS_NAMES
-from focus.utils import get_explanations, get_highlighting
+from focus.utils import get_token_explanations, get_sentence_explanations, get_highlighting
 
 app = Flask(package_name)
 
@@ -47,13 +47,15 @@ def return_score_and_explanations():
         f"{CLASS_NAMES[pred]} ({pred})": y_prob[pred] for pred in y_prob.argsort()[::-1]
     }
     logging.info(f"Predicted class: {classes_scores}")
-    explanations = get_explanations(input_text, model)
-
+    token_explanations = get_token_explanations(input_text, model)
+    sentence_explanations = get_sentence_explanations(input_text, model)
     response = {
         "data": {
             "scores": classes_scores,
-            "explanations": explanations,
-            "highlighted_text_top_class": get_highlighting(input_text, explanations[top_class]),
+            "token_explanations": token_explanations,
+            "sentence_explanations": sentence_explanations,
+            "highlighted_tokens_top_class": get_highlighting(input_text, token_explanations[top_class]),
+            "highlighted_sentences_top_class": get_highlighting(input_text, sentence_explanations[top_class]),
         }
     }
     return jsonify(response), status
