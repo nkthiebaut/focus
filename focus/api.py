@@ -29,14 +29,13 @@ def health_check():
 @app.route("/explain", methods=["POST"])
 def return_score_and_explanations():
     """Get the score and prediction for a given input text."""
-    status = 200
     try:
         input_text = request.json["text"]
     except KeyError:
         logging.warning(
             'Wrong request, expected POST request with JSON payload and a "text" field.'
         )
-        status = 400
+        return jsonify({"data": None}), 400
     logging.info(f"Received query with input text: {input_text}")
 
     y_prob = model.predict_proba([input_text])[0]
@@ -58,7 +57,7 @@ def return_score_and_explanations():
             "highlighted_sentences_top_class": get_highlighting(input_text, sentence_explanations[top_class]),
         }
     }
-    return jsonify(response), status
+    return jsonify(response), 200
 
 
 if __name__ == "__main__":

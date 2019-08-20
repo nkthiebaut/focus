@@ -1,7 +1,8 @@
-FROM ubuntu:17.10
+FROM ubuntu:18.04
 LABEL maintainer="nicolas@hired.com"
 
-# ENV DEBIAN_FRONTEND noninteractive
+# "anti-frontend", gives the default answer to all questions 
+#ENV DEBIAN_FRONTEND noninteractive  
 ENV LC_ALL C.UTF-8
 ENV LANG C.UTF-8
 
